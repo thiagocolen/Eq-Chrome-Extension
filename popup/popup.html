@@ -9,10 +9,6 @@
     <div class="container">
         <div class="header">
             <h1>Equalizer</h1>
-            <label class="switch">
-                <input type="checkbox" id="power-toggle">
-                <span class="slider round"></span>
-            </label>
         </div>
 
         <div class="presets-container">
@@ -27,51 +23,56 @@
             </select>
         </div>
 
+        <div class="preamp-container">
+            <label>Pre Amp</label>
+            <input type="range" min="-12" max="12" value="0" id="pre-amp">
+        </div>
+
         <div class="sliders-container">
-            <!-- 60Hz -->
+            <!-- 32Hz -->
             <div class="slider-group">
                 <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="0" orient="vertical">
-                <label>60</label>
+                <label>32</label>
             </div>
-            <!-- 170Hz -->
+            <!-- 64Hz -->
             <div class="slider-group">
                 <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="1" orient="vertical">
-                <label>170</label>
+                <label>64</label>
             </div>
-            <!-- 310Hz -->
+            <!-- 125Hz -->
             <div class="slider-group">
                 <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="2" orient="vertical">
-                <label>310</label>
+                <label>125</label>
             </div>
-            <!-- 600Hz -->
+            <!-- 250Hz -->
             <div class="slider-group">
                 <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="3" orient="vertical">
-                <label>600</label>
+                <label>250</label>
+            </div>
+            <!-- 500Hz -->
+            <div class="slider-group">
+                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="4" orient="vertical">
+                <label>500</label>
             </div>
             <!-- 1kHz -->
             <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="4" orient="vertical">
+                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="5" orient="vertical">
                 <label>1k</label>
             </div>
-            <!-- 3kHz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="5" orient="vertical">
-                <label>3k</label>
-            </div>
-            <!-- 6kHz -->
+            <!-- 2kHz -->
             <div class="slider-group">
                 <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="6" orient="vertical">
-                <label>6k</label>
+                <label>2k</label>
             </div>
-            <!-- 12kHz -->
+            <!-- 4kHz -->
             <div class="slider-group">
                 <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="7" orient="vertical">
-                <label>12k</label>
+                <label>4k</label>
             </div>
-            <!-- 14kHz -->
+            <!-- 8kHz -->
             <div class="slider-group">
                 <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="8" orient="vertical">
-                <label>14k</label>
+                <label>8k</label>
             </div>
             <!-- 16kHz -->
             <div class="slider-group">

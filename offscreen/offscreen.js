@@ -1,11 +1,13 @@
 // offscreen/offscreen.js
 
 let audioContext;
+let preAmpGain;
 let masterGain;
 let filters = [];
 let source;
+let mediaStream;
 
-const FREQUENCIES = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
+const FREQUENCIES = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
 let capturedTabId = null;
 
@@ -15,22 +17,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         capturedTabId = request.tabId;
         startCapture(request.streamId);
         sendResponse(true);
+    } else if (request.type === 'STOP_CAPTURE') {
+        stopCapture();
+        sendResponse(true);
     } else if (request.type === 'GET_CAPTURED_TAB_ID') {
         sendResponse(capturedTabId);
     } else if (request.type === 'UPDATE_FILTER') {
         updateFilter(request.index, request.value);
     } else if (request.type === 'UPDATE_MASTER') {
         updateMaster(request.value);
+    } else if (request.type === 'UPDATE_PREAMP') {
+        updatePreAmp(request.value);
     }
 });
+
+async function stopCapture() {
+    if (audioContext) {
+        await audioContext.close();
+        audioContext = null;
+    }
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+    capturedTabId = null;
+    console.log("Capture stopped.");
+}
 
 async function startCapture(streamId) {
     if (audioContext) {
         await audioContext.close();
     }
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
 
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 mandatory: {
                     chromeMediaSource: 'tab',
@@ -49,7 +73,7 @@ async function startCapture(streamId) {
             console.log("AudioContext resumed. New state:", audioContext.state);
         }
 
-        source = audioContext.createMediaStreamSource(stream);
+        source = audioContext.createMediaStreamSource(mediaStream);
 
         // Create filters
         filters = FREQUENCIES.map(freq => {
@@ -65,8 +89,15 @@ async function startCapture(streamId) {
         masterGain = audioContext.createGain();
         masterGain.gain.value = 1.0;
 
-        // Connect the graph: Source -> Filter[0] -> ... -> Filter[N] -> MasterGain -> Destination
+        // Create Pre Amp Gain
+        preAmpGain = audioContext.createGain();
+        preAmpGain.gain.value = 1.0; // Default 0dB
+
+        // Connect the graph: Source -> PreAmp -> Filter[0] -> ... -> Filter[N] -> MasterGain -> Destination
         let node = source;
+        node.connect(preAmpGain);
+        node = preAmpGain;
+
         for (const filter of filters) {
             node.connect(filter);
             node = filter;
@@ -85,6 +116,15 @@ function updateFilter(index, value) {
     if (filters[index]) {
         // Value is typically in dB, e.g., -12 to +12
         filters[index].gain.value = value;
+    }
+}
+
+function updatePreAmp(value) {
+    if (preAmpGain) {
+        // value is in dB, convert to gain
+        // 10^(dB/20)
+        const gain = Math.pow(10, value / 20);
+        preAmpGain.gain.value = gain;
     }
 }
 

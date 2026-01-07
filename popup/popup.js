@@ -7,18 +7,19 @@ const PRESETS = {
     'vocal': [-2, -2, -2, 2, 4, 4, 4, 2, 0, 0],
     'electronic': [5, 4, 1, 0, -2, -1, 0, 2, 4, 5],
     'treble-reducer': [0, 0, 0, 0, 0, -2, -4, -6, -8, -10],
-    'super-treble-reducer': [0, 0, 0, 0, 0, -4, -8, -12, -12, -12]
+    'super-treble-reducer': [0, 0, 0, 0, 0, -6, -12, -12, -12, -12]
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
     // UI Elements
-    const powerToggle = document.getElementById('power-toggle');
     const presetSelect = document.getElementById('presets');
     const sliders = Array.from(document.querySelectorAll('.eq-slider'));
+    const preAmpSlider = document.getElementById('pre-amp');
     const masterVolume = document.getElementById('master-volume');
 
     // Load saved settings
-    const storage = await chrome.storage.local.get(['gains', 'master', 'preset', 'enabled']);
+    // Load saved settings
+    const storage = await chrome.storage.local.get(['gains', 'master', 'preamp', 'preset']);
 
     // Init Gains
     const currentGains = storage.gains || PRESETS.flat;
@@ -36,22 +37,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         presetSelect.value = storage.preset;
     }
 
-    // Init Power
-    powerToggle.checked = storage.enabled !== false; // Default true
+    // Init Pre Amp
+    if (storage.preamp !== undefined) {
+        preAmpSlider.value = storage.preamp;
+    }
 
     // Event Listeners
-    powerToggle.addEventListener('change', () => {
+    preAmpSlider.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        updatePreAmp(value);
         saveSettings();
-        if (powerToggle.checked) {
-            setupAudioCapture();
-        } else {
-            // Logic to bypass or disable?
-            // For this simple version, turning off might just mean resetting gains to flat or stopping capture.
-            // A true "bypass" requires connecting Source straight to Destination in Offscreen.
-            // For now, we will just set listeners to "flat" if disabled, but visually keep sliders?
-            // Better: update filters to 0 if disabled.
-            applyState();
-        }
     });
 
     presetSelect.addEventListener('change', () => {
@@ -82,11 +77,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveSettings();
     });
 
-    // Initial Setup
-    if (powerToggle.checked) {
-        await setupAudioCapture();
-    }
+    // Initial Setup - Always On
+    await setupAudioCapture();
 });
+
 
 async function setupAudioCapture() {
     // Send message to Background to ensure Offscreen document exists
@@ -137,6 +131,13 @@ function updateFilter(index, value) {
     });
 }
 
+function updatePreAmp(value) {
+    chrome.runtime.sendMessage({
+        type: 'UPDATE_PREAMP',
+        value: value
+    });
+}
+
 function updateMaster(value) {
     chrome.runtime.sendMessage({
         type: 'UPDATE_MASTER',
@@ -145,31 +146,28 @@ function updateMaster(value) {
 }
 
 function applyState() {
-    const power = document.getElementById('power-toggle').checked;
     const sliders = Array.from(document.querySelectorAll('.eq-slider'));
+    const preAmp = document.getElementById('pre-amp');
     const master = document.getElementById('master-volume');
 
-    if (power) {
-        sliders.forEach((s, i) => updateFilter(i, parseFloat(s.value)));
-        updateMaster(parseFloat(master.value));
-    } else {
-        // "Bypass" mode: set all to 0
-        sliders.forEach((s, i) => updateFilter(i, 0));
-        updateMaster(1.0); // or keep master volume? usually bypass keeps volume.
-    }
+    sliders.forEach((s, i) => updateFilter(i, parseFloat(s.value)));
+    updatePreAmp(parseFloat(preAmp.value));
+    updateMaster(parseFloat(master.value));
 }
+
 
 function saveSettings() {
     const sliders = Array.from(document.querySelectorAll('.eq-slider'));
     const gains = sliders.map(s => parseFloat(s.value));
+    const preAmp = parseFloat(document.getElementById('pre-amp').value);
     const master = parseFloat(document.getElementById('master-volume').value);
     const preset = document.getElementById('presets').value;
-    const enabled = document.getElementById('power-toggle').checked;
 
     chrome.storage.local.set({
         gains,
         master,
-        preset,
-        enabled
+        preamp: preAmp,
+        preset
     });
 }
+
