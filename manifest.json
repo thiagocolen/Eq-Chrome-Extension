@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Eq-Chrome-Extension",
+  "version": "1.0",
+  "description": "A 10-band audio equalizer for your active tab.",
+  "permissions": [
+    "tabCapture",
+    "offscreen",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon-128.png",
+      "48": "assets/icon-128.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icon-128.png",
+    "48": "assets/icon-128.png",
+    "128": "assets/icon-128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["offscreen/offscreen.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
