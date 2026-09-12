@@ -76,16 +76,26 @@ async function closeCaptureWindow() {
     }
 }
 
-async function updatePopups(ownerTabId) {
+// Chrome opens the UI as a side panel (see manifest.json's side_panel key);
+// Firefox has no side panel API and keeps the floating popup instead.
+async function updatePanelAccess(ownerTabId) {
     activeTabId = ownerTabId;
     const tabs = await browser.tabs.query({});
     for (const tab of tabs) {
-        if (ownerTabId === null) {
-            // Unlock all tabs
-            browser.action.setPopup({ tabId: tab.id, popup: 'popup/popup.html' });
-        } else if (tab.id !== ownerTabId) {
-            // Lock other tabs
-            browser.action.setPopup({ tabId: tab.id, popup: '' });
+        if (isFirefox) {
+            if (ownerTabId === null) {
+                // Unlock all tabs
+                browser.action.setPopup({ tabId: tab.id, popup: 'popup/popup.html' });
+            } else if (tab.id !== ownerTabId) {
+                // Lock other tabs
+                browser.action.setPopup({ tabId: tab.id, popup: '' });
+            }
+        } else if (ownerTabId === null || tab.id === ownerTabId) {
+            // Unlock: restore the side panel on this tab
+            browser.sidePanel.setOptions({ tabId: tab.id, path: 'popup/popup.html', enabled: true });
+        } else {
+            // Lock: disabling also closes the panel if it's currently open
+            browser.sidePanel.setOptions({ tabId: tab.id, enabled: false });
         }
     }
 }
@@ -96,7 +106,9 @@ browser.runtime.onInstalled.addListener(() => {
     }
 });
 
-// Handle clicks on locked tabs
+// Chrome has no default_popup (the action opens the side panel instead), so
+// this fires on every click there; Firefox still has a default_popup, so
+// this only fires for locked tabs (see updatePanelAccess above).
 browser.action.onClicked.addListener((tab) => {
     if (activeTabId !== null && tab.id !== activeTabId) {
         browser.notifications.create({
@@ -105,6 +117,11 @@ browser.action.onClicked.addListener((tab) => {
             title: 'Equalizer Active',
             message: 'The Equalizer is currently active on another tab. Turn it off there to use it here.'
         });
+        return;
+    }
+
+    if (!isFirefox) {
+        browser.sidePanel.open({ tabId: tab.id });
     }
 });
 
@@ -127,11 +144,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.type === 'START_CAPTURE') {
-        updatePopups(message.tabId);
+        updatePanelAccess(message.tabId);
     }
 
     if (message.type === 'STOP_CAPTURE') {
-        updatePopups(null);
+        updatePanelAccess(null);
         if (isFirefox) {
             closeCaptureWindow();
         }
@@ -140,7 +157,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 browser.tabs.onRemoved.addListener((tabId) => {
     if (tabId === activeTabId) {
-        updatePopups(null);
+        updatePanelAccess(null);
         if (isFirefox) {
             closeCaptureWindow();
         }
@@ -149,7 +166,7 @@ browser.tabs.onRemoved.addListener((tabId) => {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (tabId === activeTabId && changeInfo.status === 'loading') {
-        updatePopups(null);
+        updatePanelAccess(null);
         browser.runtime.sendMessage({ type: 'STOP_CAPTURE' });
     }
 });
