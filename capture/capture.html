@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Eq Tab Audio Capture</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #14141a;
+            color: #eee;
+            margin: 0;
+            padding: 16px;
+            text-align: center;
+        }
+
+        p {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        button {
+            padding: 8px 14px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <p>Firefox has no silent tab-audio API. Click below, then choose <b>This Tab</b> (or the matching window) and
+        check <b>Share audio</b>.</p>
+    <button id="grant-btn">Grant Tab Audio Access</button>
+    <div id="status"></div>
+
+    <script src="../vendor/browser-polyfill.js"></script>
+    <script src="../audio-graph.js"></script>
+    <script src="capture.js"></script>
+</body>
+
+</html>

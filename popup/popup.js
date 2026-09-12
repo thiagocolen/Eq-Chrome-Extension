@@ -6,9 +6,13 @@ const PRESETS = {
     'treble-boost': [0, 0, 0, 0, 0, 2, 4, 6, 8, 10],
     'vocal': [-2, -2, -2, 2, 4, 4, 4, 2, 0, 0],
     'electronic': [5, 4, 1, 0, -2, -1, 0, 2, 4, 5],
-    'treble-reducer': [0, 0, 0, 0, 0, -2, -4, -6, -8, -10],
-    'super-treble-reducer': [0, 0, 0, 0, 0, -6, -12, -12, -12, -12]
+    'light-treble-reducer': [0, 0, 0, 0, 0, -2, -4, -4, -4, -4],
+    'treble-reducer': [0, 0, 0, 0, 0, -3, -6, -6, -6, -6],
+    'heavy-treble-reducer': [0, 0, 0, 0, 0, -5, -10, -10, -10, -10],
+    'ultra-treble-reducer': [0, 0, 0, 0, 0, -6, -12, -12, -12, -12],
 };
+
+const isFirefox = typeof browser.tabCapture === 'undefined';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // UI Elements
@@ -18,8 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const masterVolume = document.getElementById('master-volume');
 
     // Load saved settings
-    // Load saved settings
-    const storage = await chrome.storage.local.get(['gains', 'master', 'preamp', 'preset']);
+    const storage = await browser.storage.local.get(['gains', 'master', 'preamp', 'preset']);
 
     // Init Gains
     const currentGains = storage.gains || PRESETS.flat;
@@ -83,16 +86,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 async function setupAudioCapture() {
-    // Send message to Background to ensure Offscreen document exists
-    await chrome.runtime.sendMessage({ type: 'ENSURE_OFFSCREEN' });
+    // Get current tab
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
+
+    if (isFirefox) {
+        // Firefox has no tabCapture API. Ask background to open the capture
+        // window, which performs a manual getDisplayMedia "share this tab's
+        // audio" prompt and applies stored EQ settings itself once granted
+        // (this popup usually closes before that grant completes).
+        const alreadyCapturing = await browser.runtime.sendMessage({ type: 'GET_CAPTURED_TAB_ID' });
+        if (alreadyCapturing === tab.id) {
+            console.log("Already capturing tab:", tab.id);
+            return;
+        }
+        await browser.runtime.sendMessage({ type: 'ENSURE_CAPTURE_WINDOW', tabId: tab.id });
+        return;
+    }
+
+    // Chrome path: Send message to Background to ensure Offscreen document exists
+    await browser.runtime.sendMessage({ type: 'ENSURE_OFFSCREEN' });
 
     // Ask offscreen document if it's already capturing a tab
-    const alreadyCapturing = await chrome.runtime.sendMessage({ type: 'GET_CAPTURED_TAB_ID' });
-
-    // Get current tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    if (!tab) return;
+    const alreadyCapturing = await browser.runtime.sendMessage({ type: 'GET_CAPTURED_TAB_ID' });
 
     // If we're already capturing this tab, just apply state and exit
     if (alreadyCapturing === tab.id) {
@@ -103,16 +119,11 @@ async function setupAudioCapture() {
 
     // We need to get the media stream ID.
     // In MV3, chrome.tabCapture.getMediaStreamId must be called from an extension page.
-    chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id }, (streamId) => {
-        if (chrome.runtime.lastError) {
-            console.error("TabCapture error:", chrome.runtime.lastError.message);
-            return;
-        }
-
+    browser.tabCapture.getMediaStreamId({ targetTabId: tab.id }).then((streamId) => {
         console.log("Got streamId:", streamId, "for tab:", tab.id);
 
         // Send streamId to offscreen document to start capturing
-        chrome.runtime.sendMessage({
+        browser.runtime.sendMessage({
             type: 'START_CAPTURE',
             streamId: streamId,
             tabId: tab.id
@@ -120,11 +131,13 @@ async function setupAudioCapture() {
 
         // Apply current slider values immediately after starting
         applyState();
+    }).catch((err) => {
+        console.error("TabCapture error:", err.message);
     });
 }
 
 function updateFilter(index, value) {
-    chrome.runtime.sendMessage({
+    browser.runtime.sendMessage({
         type: 'UPDATE_FILTER',
         index: index,
         value: value
@@ -132,14 +145,14 @@ function updateFilter(index, value) {
 }
 
 function updatePreAmp(value) {
-    chrome.runtime.sendMessage({
+    browser.runtime.sendMessage({
         type: 'UPDATE_PREAMP',
         value: value
     });
 }
 
 function updateMaster(value) {
-    chrome.runtime.sendMessage({
+    browser.runtime.sendMessage({
         type: 'UPDATE_MASTER',
         value: value
     });
@@ -163,11 +176,10 @@ function saveSettings() {
     const master = parseFloat(document.getElementById('master-volume').value);
     const preset = document.getElementById('presets').value;
 
-    chrome.storage.local.set({
+    browser.storage.local.set({
         gains,
         master,
         preamp: preAmp,
         preset
     });
 }
-
