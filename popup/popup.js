@@ -6,8 +6,10 @@ const PRESETS = {
     'treble-boost': [0, 0, 0, 0, 0, 2, 4, 6, 8, 10],
     'vocal': [-2, -2, -2, 2, 4, 4, 4, 2, 0, 0],
     'electronic': [5, 4, 1, 0, -2, -1, 0, 2, 4, 5],
-    'treble-reducer': [0, 0, 0, 0, 0, -2, -4, -6, -8, -10],
-    'super-treble-reducer': [0, 0, 0, 0, 0, -6, -12, -12, -12, -12]
+    'light-treble-reducer': [0, 0, 0, -3, -6, -6, -6, -6, -6, -3],
+    'treble-reducer': [0, 0, 0, -4, -8, -8, -8, -8, -8, -4],
+    'super-treble-reducer': [0, 0, 0, -5, -10, -10, -10, -10, -10, -5],
+    'ultra-treble-reducer': [0, 0, 0, -6, -12, -12, -12, -12, -12, -6]
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
