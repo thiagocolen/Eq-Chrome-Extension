@@ -13,7 +13,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load saved settings
     const storage = await chrome.storage.local.get(['weq8Spec', 'master', 'preamp']);
 
-    const initialSpec = storage.weq8Spec || cloneSpec(DEFAULT_SPEC);
+    // Ignore a saved spec left over from a previous band count (e.g. the old
+    // 8-band layout) rather than rendering a mismatched number of graph points.
+    const savedSpec = storage.weq8Spec;
+    const initialSpec = (savedSpec && savedSpec.length === DEFAULT_SPEC.length)
+        ? savedSpec
+        : cloneSpec(DEFAULT_SPEC);
 
     // A silent, UI-only AudioContext: it drives the WEQ8 graph editor's math
     // (frequency-response curve, drag handles) but is never fed a real audio
