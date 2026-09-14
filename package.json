@@ -1,0 +1,28 @@
+{
+  "name": "eq-chrome-extension",
+  "version": "1.0.0",
+  "description": "A professional-grade, graphical 4-band audio equalizer extension for Google Chrome. Built with Manifest V3 and the Web Audio API for high-fidelity tab-specific sound processing.",
+  "main": "background.js",
+  "private": true,
+  "scripts": {
+    "build:weq8": "esbuild build/entry-runtime.js --bundle --format=esm --outfile=vendor/weq8/weq8-runtime.js && esbuild build/entry-ui.js --bundle --format=esm --outfile=vendor/weq8/weq8-ui.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thiagocolen/Eq-Chrome-Extension.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/thiagocolen/Eq-Chrome-Extension/issues"
+  },
+  "homepage": "https://github.com/thiagocolen/Eq-Chrome-Extension#readme",
+  "dependencies": {
+    "weq8": "^0.2.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

@@ -9,15 +9,10 @@
     <div class="container">
         <div class="header">
             <h1>Eq Chrome Extension</h1>
-            <select id="presets">
-                <option value="flat">Flat</option>
-                <option value="bass-boost">Bass Boost</option>
-                <option value="treble-boost">Treble Boost</option>
-                <option value="vocal">Vocal</option>
-                <option value="electronic">Electronic</option>
-                <option value="treble-reducer">Treble Reducer</option>
-                <option value="super-treble-reducer">Super Treble Reducer</option>
-            </select>
+        </div>
+
+        <div class="graph-container">
+            <weq8-ui></weq8-ui>
         </div>
 
         <div class="preamp-container">
@@ -25,65 +20,12 @@
             <input type="range" min="-12" max="12" value="0" id="pre-amp">
         </div>
 
-        <div class="sliders-container">
-            <!-- 32Hz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="0" orient="vertical">
-                <label>32</label>
-            </div>
-            <!-- 64Hz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="1" orient="vertical">
-                <label>64</label>
-            </div>
-            <!-- 125Hz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="2" orient="vertical">
-                <label>125</label>
-            </div>
-            <!-- 250Hz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="3" orient="vertical">
-                <label>250</label>
-            </div>
-            <!-- 500Hz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="4" orient="vertical">
-                <label>500</label>
-            </div>
-            <!-- 1kHz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="5" orient="vertical">
-                <label>1k</label>
-            </div>
-            <!-- 2kHz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="6" orient="vertical">
-                <label>2k</label>
-            </div>
-            <!-- 4kHz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="7" orient="vertical">
-                <label>4k</label>
-            </div>
-            <!-- 8kHz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="8" orient="vertical">
-                <label>8k</label>
-            </div>
-            <!-- 16kHz -->
-            <div class="slider-group">
-                <input type="range" min="-12" max="12" value="0" class="eq-slider" data-index="9" orient="vertical">
-                <label>16k</label>
-            </div>
-        </div>
-
         <div class="master-container">
             <label>Master Volume</label>
             <input type="range" min="0" max="2" step="0.1" value="1" id="master-volume">
         </div>
     </div>
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
 </body>
 
 </html>

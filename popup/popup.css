@@ -1,14 +1,14 @@
 body {
-    width: 320px;
+    width: 660px;
     background-color: #ffd700;
     /* Bright Yellow */
     color: #4b0082;
     /* Deep Purple */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    padding: 2px;
+    padding: 3px;
     box-sizing: border-box;
-    border: solid 3px rgba(75, 0, 130);
+    border: solid 4px rgba(75, 0, 130);
 }
 
 .container {
@@ -19,86 +19,50 @@ body {
 
 .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    margin-bottom: 2px;
-    gap: 8px;
-    border: 5px solid rgba(75, 0, 130, 0.1);
-    padding: 3px;
+    margin-bottom: 3px;
+    border: 7px solid rgba(75, 0, 130, 0.1);
+    padding: 4px;
 }
 
 h1 {
-    font-size: 13px;
+    font-size: 17px;
     font-weight: bold;
     margin: 0;
     color: #4b0082;
     white-space: nowrap;
 }
 
-select {
-    width: 140px;
-    background: #4b0082;
-    color: #ffd700;
-    border: 2px solid #4b0082;
-    padding: 2px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 11px;
-    cursor: pointer;
-    outline: none;
-}
-
-.sliders-container {
+.graph-container {
     display: flex;
-    justify-content: space-between;
-    flex-grow: 1;
-    padding: 2px;
+    justify-content: center;
+    padding: 3px;
+    margin-bottom: 3px;
     background-color: rgba(75, 0, 130, 0.1);
 }
 
-.slider-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 25px;
-}
-
-input[type=range][orient=vertical] {
-    writing-mode: vertical-lr;
-    direction: rtl;
-    width: 12px;
-    height: 70px;
-    padding: 0;
-    margin: 0;
-    cursor: pointer;
-    accent-color: #4b0082;
-}
-
-.slider-group label {
-    font-size: 9px;
-    margin-top: 2px;
-    color: #4b0082;
-    font-weight: bold;
-    text-align: center;
+weq8-ui {
+    width: 100%;
 }
 
 .preamp-container,
 .master-container {
-    margin-top: 2px;
-    margin-bottom: 2px;
+    margin-top: 3px;
+    margin-bottom: 3px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
+    gap: 10px;
+    font-size: 14px;
     font-weight: bold;
-    border: 5px solid rgba(75, 0, 130, 0.1);
-    padding: 3px;
+    border: 7px solid rgba(75, 0, 130, 0.1);
+    padding: 4px;
 }
 
 .preamp-container label,
 .master-container label {
     white-space: nowrap;
-    min-width: 80px;
+    min-width: 104px;
 }
 
 .preamp-container input,
