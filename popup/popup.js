@@ -1,90 +1,71 @@
 // popup/popup.js
 
-const PRESETS = {
-    'flat': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    'bass-boost': [8, 6, 4, 1, 0, 0, 0, 0, 0, 0],
-    'treble-boost': [0, 0, 0, 0, 0, 2, 4, 6, 8, 10],
-    'vocal': [-2, -2, -2, 2, 4, 4, 4, 2, 0, 0],
-    'electronic': [5, 4, 1, 0, -2, -1, 0, 2, 4, 5],
-    'light-treble-reducer': [0, 0, 0, -3, -6, -6, -6, -6, -6, -3],
-    'treble-reducer': [0, 0, 0, -4, -8, -8, -8, -8, -8, -4],
-    'super-treble-reducer': [0, 0, 0, -5, -10, -10, -10, -10, -10, -5],
-    'ultra-treble-reducer': [0, 0, 0, -6, -12, -12, -12, -12, -12, -6]
-};
+import { WEQ8Runtime } from '../vendor/weq8/weq8-ui.js';
+import { DEFAULT_SPEC } from '../shared/weq8-default-spec.js';
+import { cloneSpec } from '../shared/weq8-spec-utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // UI Elements
-    const presetSelect = document.getElementById('presets');
-    const sliders = Array.from(document.querySelectorAll('.eq-slider'));
     const preAmpSlider = document.getElementById('pre-amp');
     const masterVolume = document.getElementById('master-volume');
+    const weq8Element = document.querySelector('weq8-ui');
 
     // Load saved settings
-    // Load saved settings
-    const storage = await chrome.storage.local.get(['gains', 'master', 'preamp', 'preset']);
+    const storage = await chrome.storage.local.get(['weq8Spec', 'master', 'preamp']);
 
-    // Init Gains
-    const currentGains = storage.gains || PRESETS.flat;
-    sliders.forEach((slider, i) => {
-        slider.value = currentGains[i];
-    });
+    // Ignore a saved spec left over from a previous band count (e.g. the old
+    // 8-band layout) rather than rendering a mismatched number of graph points.
+    const savedSpec = storage.weq8Spec;
+    const initialSpec = (savedSpec && savedSpec.length === DEFAULT_SPEC.length)
+        ? savedSpec
+        : cloneSpec(DEFAULT_SPEC);
 
-    // Init Master
+    // A silent, UI-only AudioContext: it drives the WEQ8 graph editor's math
+    // (frequency-response curve, drag handles) but is never fed a real audio
+    // source or connected to speakers. The actual audio processing happens
+    // in the offscreen document's own WEQ8Runtime, kept in sync via messages.
+    const uiAudioCtx = new AudioContext();
+    const uiRuntime = new WEQ8Runtime(uiAudioCtx, cloneSpec(initialSpec));
+    weq8Element.runtime = uiRuntime;
+
+    // Init Master / Pre Amp
     if (storage.master !== undefined) {
         masterVolume.value = storage.master;
     }
-
-    // Init Preset
-    if (storage.preset) {
-        presetSelect.value = storage.preset;
-    }
-
-    // Init Pre Amp
     if (storage.preamp !== undefined) {
         preAmpSlider.value = storage.preamp;
     }
 
     // Event Listeners
+    uiRuntime.on('filtersChanged', (spec) => {
+        chrome.storage.local.set({ weq8Spec: cloneSpec(spec) });
+        chrome.runtime.sendMessage({ type: 'UPDATE_WEQ8_SPEC', spec: cloneSpec(spec) });
+    });
+
     preAmpSlider.addEventListener('input', (e) => {
         const value = parseFloat(e.target.value);
         updatePreAmp(value);
-        saveSettings();
-    });
-
-    presetSelect.addEventListener('change', () => {
-        const presetName = presetSelect.value;
-        if (PRESETS[presetName]) {
-            const gains = PRESETS[presetName];
-            sliders.forEach((slider, i) => {
-                slider.value = gains[i];
-                updateFilter(i, gains[i]);
-            });
-            saveSettings();
-        }
-    });
-
-    sliders.forEach((slider) => {
-        slider.addEventListener('input', (e) => {
-            const index = parseInt(e.target.dataset.index);
-            const value = parseFloat(e.target.value);
-            presetSelect.value = 'custom'; // Switch dropdown to indicate custom
-            updateFilter(index, value);
-            saveSettings();
-        });
+        saveGainSettings();
     });
 
     masterVolume.addEventListener('input', (e) => {
         const value = parseFloat(e.target.value);
         updateMaster(value);
-        saveSettings();
+        saveGainSettings();
     });
 
+    function saveGainSettings() {
+        chrome.storage.local.set({
+            master: parseFloat(masterVolume.value),
+            preamp: parseFloat(preAmpSlider.value)
+        });
+    }
+
     // Initial Setup - Always On
-    await setupAudioCapture();
+    await setupAudioCapture(uiRuntime);
 });
 
-
-async function setupAudioCapture() {
+async function setupAudioCapture(uiRuntime) {
     // Send message to Background to ensure Offscreen document exists
     await chrome.runtime.sendMessage({ type: 'ENSURE_OFFSCREEN' });
 
@@ -99,7 +80,7 @@ async function setupAudioCapture() {
     // If we're already capturing this tab, just apply state and exit
     if (alreadyCapturing === tab.id) {
         console.log("Already capturing tab:", tab.id);
-        applyState();
+        applyState(uiRuntime);
         return;
     }
 
@@ -120,16 +101,15 @@ async function setupAudioCapture() {
             tabId: tab.id
         });
 
-        // Apply current slider values immediately after starting
-        applyState();
+        // Apply current state immediately after starting
+        applyState(uiRuntime);
     });
 }
 
-function updateFilter(index, value) {
+function updateWeq8Spec(spec) {
     chrome.runtime.sendMessage({
-        type: 'UPDATE_FILTER',
-        index: index,
-        value: value
+        type: 'UPDATE_WEQ8_SPEC',
+        spec
     });
 }
 
@@ -147,29 +127,11 @@ function updateMaster(value) {
     });
 }
 
-function applyState() {
-    const sliders = Array.from(document.querySelectorAll('.eq-slider'));
+function applyState(uiRuntime) {
     const preAmp = document.getElementById('pre-amp');
     const master = document.getElementById('master-volume');
 
-    sliders.forEach((s, i) => updateFilter(i, parseFloat(s.value)));
+    updateWeq8Spec(cloneSpec(uiRuntime.spec));
     updatePreAmp(parseFloat(preAmp.value));
     updateMaster(parseFloat(master.value));
 }
-
-
-function saveSettings() {
-    const sliders = Array.from(document.querySelectorAll('.eq-slider'));
-    const gains = sliders.map(s => parseFloat(s.value));
-    const preAmp = parseFloat(document.getElementById('pre-amp').value);
-    const master = parseFloat(document.getElementById('master-volume').value);
-    const preset = document.getElementById('presets').value;
-
-    chrome.storage.local.set({
-        gains,
-        master,
-        preamp: preAmp,
-        preset
-    });
-}
-
