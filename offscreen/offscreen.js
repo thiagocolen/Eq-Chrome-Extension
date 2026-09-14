@@ -1,13 +1,14 @@
 // offscreen/offscreen.js
 
+import { WEQ8Runtime } from '../vendor/weq8/weq8-runtime.js';
+import { applySpecToRuntime } from '../shared/weq8-spec-utils.js';
+
 let audioContext;
 let preAmpGain;
 let masterGain;
-let filters = [];
+let weq8;
 let source;
 let mediaStream;
-
-const FREQUENCIES = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
 let capturedTabId = null;
 
@@ -22,8 +23,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse(true);
     } else if (request.type === 'GET_CAPTURED_TAB_ID') {
         sendResponse(capturedTabId);
-    } else if (request.type === 'UPDATE_FILTER') {
-        updateFilter(request.index, request.value);
+    } else if (request.type === 'UPDATE_WEQ8_SPEC') {
+        updateWeq8Spec(request.spec);
     } else if (request.type === 'UPDATE_MASTER') {
         updateMaster(request.value);
     } else if (request.type === 'UPDATE_PREAMP') {
@@ -40,6 +41,7 @@ async function stopCapture() {
         mediaStream.getTracks().forEach(track => track.stop());
         mediaStream = null;
     }
+    weq8 = null;
     capturedTabId = null;
     console.log("Capture stopped.");
 }
@@ -75,15 +77,10 @@ async function startCapture(streamId) {
 
         source = audioContext.createMediaStreamSource(mediaStream);
 
-        // Create filters
-        filters = FREQUENCIES.map(freq => {
-            const filter = audioContext.createBiquadFilter();
-            filter.type = 'peaking';
-            filter.frequency.value = freq;
-            filter.Q.value = 1.0;
-            filter.gain.value = 0;
-            return filter;
-        });
+        // Create the WEQ8 4-band equalizer. The popup pushes the real spec
+        // right after capture starts, so the library default here is only
+        // ever audible for an instant.
+        weq8 = new WEQ8Runtime(audioContext);
 
         // Create Master Gain
         masterGain = audioContext.createGain();
@@ -93,16 +90,10 @@ async function startCapture(streamId) {
         preAmpGain = audioContext.createGain();
         preAmpGain.gain.value = 1.0; // Default 0dB
 
-        // Connect the graph: Source -> PreAmp -> Filter[0] -> ... -> Filter[N] -> MasterGain -> Destination
-        let node = source;
-        node.connect(preAmpGain);
-        node = preAmpGain;
-
-        for (const filter of filters) {
-            node.connect(filter);
-            node = filter;
-        }
-        node.connect(masterGain);
+        // Connect the graph: Source -> PreAmp -> WEQ8 -> MasterGain -> Destination
+        source.connect(preAmpGain);
+        preAmpGain.connect(weq8.input);
+        weq8.connect(masterGain);
         masterGain.connect(audioContext.destination);
         console.log("Audio graph connected and active.");
 
@@ -112,10 +103,9 @@ async function startCapture(streamId) {
     }
 }
 
-function updateFilter(index, value) {
-    if (filters[index]) {
-        // Value is typically in dB, e.g., -12 to +12
-        filters[index].gain.value = value;
+function updateWeq8Spec(spec) {
+    if (weq8) {
+        applySpecToRuntime(weq8, spec);
     }
 }
 
